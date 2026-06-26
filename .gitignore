@@ -1,0 +1,29 @@
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Cryptographic keys
+keys/
+*.pem
+*.key
+*.pub
+
+# Test artifacts
+evidence.txt
+decrypted-evidence.txt
+*.qsenc
+manifest.json
+
+# Internal scripts
+*.ps1
+docs/devlog.md
+docs/notes.md
+
+# OS specific
+.DS_Store
+Thumbs.db
