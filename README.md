@@ -34,9 +34,12 @@ Designed for forensic chain-of-custody workflows — hash, sign, and optionally 
 
 ```bash
 # Requires Go 1.21+
-git clone <repository-url>
+git clone https://github.com/Odysse4s/QS-Sealer.git
 cd QS-Sealer
 go build -o qs-sealer .
+
+# Check version
+qs-sealer --version
 ```
 
 ---
@@ -71,6 +74,10 @@ qs-sealer seal --file evidence.raw --key ./keys/qs-sealer.priv.pem
 qs-sealer seal --file evidence.raw --key ./keys/qs-sealer.priv.pem \
   --encrypt --enc-key ./keys/qs-sealer.enc.pub.pem \
   --output evidence-manifest.json
+
+# Overwrite an existing manifest
+qs-sealer seal --file evidence.raw --key ./keys/qs-sealer.priv.pem \
+  --output manifest.json --overwrite
 ```
 
 Produces a `manifest.json`:

@@ -55,6 +55,9 @@ func EncryptFile(inputPath, outputPath string, sharedSecret, kemCiphertext []byt
 		return fmt.Errorf("encryptor: invalid KEM ciphertext length: got %d, want %d", len(kemCiphertext), KEMCTSize)
 	}
 
+	// Zero shared secret from memory when done.
+	defer zeroize(sharedSecret)
+
 	// Create AES-256-GCM cipher
 	block, err := aes.NewCipher(sharedSecret)
 	if err != nil {
@@ -86,6 +89,10 @@ func EncryptFile(inputPath, outputPath string, sharedSecret, kemCiphertext []byt
 	defer func() {
 		if cerr := outFile.Close(); cerr != nil && err == nil {
 			err = fmt.Errorf("encryptor: close output file: %w", cerr)
+		}
+		// Remove partial output file on any error to avoid leaving corrupt artifacts.
+		if err != nil {
+			os.Remove(outputPath)
 		}
 	}()
 
@@ -216,6 +223,8 @@ func DecryptFile(inputPath, outputPath string, privKey kem.PrivateKey) error {
 	if err != nil {
 		return fmt.Errorf("encryptor: recover shared secret: %w", err)
 	}
+	// Zero shared secret from memory when done.
+	defer zeroize(sharedSecret)
 
 	// Create AES-256-GCM cipher
 	block, err := aes.NewCipher(sharedSecret)
@@ -303,4 +312,11 @@ func deriveChunkNonce(baseNonce []byte, chunkIndex uint32) []byte {
 	nonce[11] ^= idxBuf[3]
 
 	return nonce
+}
+
+// zeroize overwrites a byte slice with zeros to remove sensitive material from memory.
+func zeroize(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
 }

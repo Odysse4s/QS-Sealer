@@ -56,12 +56,14 @@ func SaveEncPrivateKeyPEM(key kem.PrivateKey, path string) error {
 	if err != nil {
 		return fmt.Errorf("encryptor: marshal private key: %w", err)
 	}
+	defer zeroizeKEM(raw)
 
 	block := &pem.Block{
 		Type:  "MLKEM768 PRIVATE KEY",
 		Bytes: raw,
 	}
 	data := pem.EncodeToMemory(block)
+	defer zeroizeKEM(data)
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("encryptor: save private key: %w", err)
 	}
@@ -102,6 +104,7 @@ func LoadEncPrivateKeyPEM(path string) (kem.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encryptor: read private key file: %w", err)
 	}
+	defer zeroizeKEM(data)
 
 	block, _ := pem.Decode(data)
 	if block == nil {
@@ -110,6 +113,7 @@ func LoadEncPrivateKeyPEM(path string) (kem.PrivateKey, error) {
 	if block.Type != "MLKEM768 PRIVATE KEY" {
 		return nil, fmt.Errorf("encryptor: unexpected PEM type %q, expected MLKEM768 PRIVATE KEY", block.Type)
 	}
+	defer zeroizeKEM(block.Bytes)
 
 	priv, err := mlkem768.Scheme().UnmarshalBinaryPrivateKey(block.Bytes)
 	if err != nil {
@@ -141,4 +145,11 @@ func Decapsulate(privKey kem.PrivateKey, ciphertext []byte) (sharedSecret []byte
 		return nil, fmt.Errorf("encryptor: decapsulate: %w", err)
 	}
 	return ss, nil
+}
+
+// zeroizeKEM overwrites a byte slice with zeros to remove sensitive material from memory.
+func zeroizeKEM(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
 }

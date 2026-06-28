@@ -147,6 +147,16 @@ func runVerify(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, " ⚠️  WARNING: Loaded public key ID (%s) does not match manifest key ID (%s)!\n", keyID, m.PublicKeyID)
 	}
 
+	// ── Cross-check file size ──────────────────────────────────────────────
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file %q: %w", filePath, err)
+	}
+	if fileInfo.Size() != m.FileSizeBytes {
+		fmt.Fprintf(os.Stderr, " ❌ File size mismatch: manifest says %d bytes, actual is %d bytes\n", m.FileSizeBytes, fileInfo.Size())
+		return fmt.Errorf("file size mismatch: expected %d, got %d", m.FileSizeBytes, fileInfo.Size())
+	}
+
 	// ── Recompute file hash ────────────────────────────────────────────────
 	fmt.Fprintf(os.Stderr, "🔒 Computing SHA3-512 hash of %s...\n", filePath)
 	recomputedHash, err := hasher.HashFile(filePath)
@@ -214,7 +224,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(os.Stderr, "══════════════════════════════════════════════\n")
-	fmt.Fprintf(os.Stderr, "══════════════════════════════════════════════\n")
+	fmt.Fprintf(os.Stderr, "\n⚠️  The evidence file may have been tampered with!\n")
 
 	return fmt.Errorf("the evidence file has been tampered with")
 }

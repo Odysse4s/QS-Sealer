@@ -34,11 +34,13 @@ func GenerateKeypair() (*mode3.PublicKey, *mode3.PrivateKey, error) {
 // the sensitive key material. The PEM block type is "DILITHIUM PRIVATE KEY".
 func SavePrivateKeyPEM(key *mode3.PrivateKey, path string) error {
 	raw := key.Bytes()
+	defer zeroize(raw)
 	block := &pem.Block{
 		Type:  "DILITHIUM PRIVATE KEY",
 		Bytes: raw,
 	}
 	data := pem.EncodeToMemory(block)
+	defer zeroize(data)
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("crypto: save private key: %w", err)
 	}
@@ -71,6 +73,7 @@ func LoadPrivateKeyPEM(path string) (*mode3.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("crypto: read private key file: %w", err)
 	}
+	defer zeroize(data)
 
 	block, _ := pem.Decode(data)
 	if block == nil {
@@ -79,6 +82,7 @@ func LoadPrivateKeyPEM(path string) (*mode3.PrivateKey, error) {
 	if block.Type != "DILITHIUM PRIVATE KEY" {
 		return nil, fmt.Errorf("crypto: unexpected PEM type %q, expected DILITHIUM PRIVATE KEY", block.Type)
 	}
+	defer zeroize(block.Bytes)
 
 	var key mode3.PrivateKey
 	if err := key.UnmarshalBinary(block.Bytes); err != nil {
@@ -120,4 +124,15 @@ func PublicKeyID(key *mode3.PublicKey) string {
 	h := sha3.New256()
 	h.Write(key.Bytes())
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// zeroize overwrites a byte slice with zeros to remove sensitive material from memory.
+//
+// This is a best-effort defense-in-depth measure. The Go runtime may have already
+// copied the data during garbage collection, but zeroing reduces the window of
+// exposure for memory-scraping attacks.
+func zeroize(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
 }
